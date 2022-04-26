@@ -1,0 +1,134 @@
+apt-get update
+apt-get install software-properties-common
+apt-add-repository universe
+apt-get update
+apt-get install python-setuptools
+apt install python3-pip
+apt-get install libmysqlclient-dev
+apt-get install libssl-dev
+apt-get install libkrb5-dev
+apt-get install default-libmysqlclient-dev
+apt-get install build-essential
+apt-get install libffi-dev
+apt-get install libpq-dev
+apt install python3-virtualenv
+virtualenv nama_projectnya
+source nama_projectnya/bin/activate
+export AIRFLOW_HOME=~/nama_folder_terserah
+pip3 install psycopg2
+pip3 install psycopg2-binary
+pip3 install apache-airflow
+pip3 install typing_extensions
+airflow db init
+------------------------------------------
+	Buat user untuk airflow
+------------------------------------------
+airflow users create \
+--username admin \
+--firstname FIRST_NAME \
+--lastname  LAST_NAME \
+--role Admin \
+--email admin@example.org
+------------------------------------------
+	Jalankan airflow kita		
+------------------------------------------
+airflow webserver -p 8080
+------------------------------------------
+	Jalankan airflow schedule
+------------------------------------------
+airflow scheduler
+
+------------------------------------------
+	Setting airflow berjaan
+	       di systemd
+------------------------------------------
+
+cat /etc/systemd/system/airflow-webserver.service
+
+-----ketikan-----
+
+#airflow-webserver.service
+[Unit]
+Description=Airflow webserver daemon
+After=network.target postgresql.service mysql.service redis.service rabbitmq-server.service
+Wants=postgresql.service mysql.service redis.service rabbitmq-server.service
+
+[Service]
+#EnvironmentFile=/etc/default/airflow
+Environment="PATH=/home/vta/airflow_vta/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+User=root
+Group=root
+Type=simple
+ExecStart=/usr/bin/bash -c 'source /home/vta/airflow_vta/bin/activate; airflow webserver -p 8085'
+Restart=on-failure
+RestartSec=5s
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
+
+-----selesai-----
+
+------------------------------------------------------
+lanjut membuat systemd untuk menjalankan scheduler nya
+------------------------------------------------------
+cat /etc/systemd/system/airflow-scheduler.service
+
+-----ketikan-----
+
+#airflow-scheduler.service
+
+[Unit]
+Description=Airflow scheduler daemon
+After=network.target postgresql.service mysql.service redis.service rabbitmq-server.service
+Wants=postgresql.service mysql.service redis.service rabbitmq-server.service
+
+[Service]
+#EnvironmentFile=/etc/default/airflow
+Environment="PATH=/home/vta/airflow_vta/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+User=root
+Group=root
+Type=simple
+ExecStart=/usr/bin/bash -c 'source /home/vta/airflow_vta/bin/activate; airflow scheduler'
+Restart=always
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
+
+-----selesai-----
+
+--------------------------------------
+catatan terkait settingan systemd yang
+kita buat supaya tidak bingung
+--------------------------------------
+
+description  : Seperti namanya suggestes itu adalah gambaran kecil tentang layanan 
+after  :Itu hanya berarti bahwa anda layanan harus dimulai  setelah  layanan yang diperlukan untuk deamon untuk menjalankan, seperti untuk apache-aliran udara yang kita butuhkan jaringan, postgresql dan mysql akan siap sebelum dimulai. Jika anda apache-aliran udara memerlukan instalasi redis atau rabbitmq jasa dari anda dapat menentukan ketergantungan di sini 
+EnvironmentFile :  ini menentukan file mana layanan akan menemukan variabel lingkungan di ubuntu nya /etc/environment 
+User  : mengatur nama pengguna yang sebenarnya di sini, yang ditentukan userid akan digunakan untuk memanggil layanan 
+ExecStart  : di sini anda dapat menentukan perintah yang akan dieksekusi atau mengatur jalur yang tepat untuk naskah anda yang perlu excuted. dalam kasus kami, kami yang sederhana perlu menjalankan perintah aliran udara webserver 
+Restart  : secara default, systemd tidak me-restart layanan anda jika program keluar untuk alasan apapun. Ini biasanya bukan apa yang anda inginkan untuk layanan yang harus selalu tersedia, jadi kita memerintahkan untuk selalu restart-kegagalan 
+RestartSec : secara default, systemd upaya restart setelah 100ms. Anda dapat menentukan jumlah detik untuk menunggu sebelum mencoba restart, menggunakan RestartSec.
+
+--------------------------------------
+lanjut dengan memulai systemd airflow
+--------------------------------------
+sudo systemctl daemon-reload
+sudo systemctl enable airflow airflow-webserver.service
+sudo systemctl enable airflow airflow-scheduler.service 
+
+--------------------------------------
+	restart airflow kita
+--------------------------------------
+sudo systemctl restart airflow airflow-webserver.service
+sudo systemctl restart airflow airflow-scheduler.service
+
+--------------------------------------
+	stop airflow kita
+--------------------------------------
+sudo systemctl stop airflow airflow-webserver.service
+sudo systemctl stop airflow airflow-scheduler.service 
+
+
+
