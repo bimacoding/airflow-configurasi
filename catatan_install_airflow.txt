@@ -1,29 +1,103 @@
-apt-get update
-apt-get install software-properties-common
-apt-add-repository universe
-apt-get update
-apt-get install python-setuptools
-apt install python3-pip
-apt-get install libmysqlclient-dev
-apt-get install libssl-dev
-apt-get install libkrb5-dev
-apt-get install default-libmysqlclient-dev
-apt-get install build-essential
-apt-get install libffi-dev
-apt-get install libpq-dev
-apt install python3-virtualenv
-virtualenv nama_projectnya
-source nama_projectnya/bin/activate
-export AIRFLOW_HOME=~/nama_folder_terserah
-pip3 install psycopg2
-pip3 install psycopg2-binary
-pip3 install apache-airflow
-pip3 install typing_extensions
-airflow db init
+$ apt-get update
+$ apt-get install software-properties-common
+$ apt-add-repository universe
+$ apt-get update
+$ apt-get install postgresql postgresql-client
+--------------------------------------------
+cek postgre sudah berjalan atau belum
+--------------------------------------------
+$ systemctl status postgresql.service 
+
+port posgresql defaultnya :5432
+--------------------------------------------
+
+--------------------------------------------
+setting postgresql agar bisa di akses jaringan
+--------------------------------------------
+$ nano /etc/postgresql/12/main/postgresql.conf
+=====setting=====
+
+listen_addresses = '*'
+
+=====cek=====
+$ ss -nlt
+
+jika berhasil port 5432 akan memiliki host 0.0.0.0
+--------------------------------------------------
+=====re-run=====
+$ sudo systemctl restart postgresql
+--------------------------------------------------
+
+--------------------------------------------------
+Selanjutnya, kita harus menambahkan baris berikut 
+ke file konfigurasi /etc/postgresql/12/main/pg_hba.conf kita,
+yang akan memungkinkan koneksi klien masuk ke semua 
+database dan pengguna.  Opsi md5 menentukan bahwa 
+pengguna harus mengautentikasi dengan kata sandi.
+
+
+$ nano /etc/postgresql/12/main/pg_hba.conf
+
+#tambah kan ini
+host	all		all		0.0.0.0/0		md5
+
+=====save=====
+
+## tambahkan firewal untuk port 5432
+
+sudo ufw allow from any to any port 5432 proto tcp
+
+## masuk ke postgre sql kita
+
+$ sudo su - postgres
+$ psql
+## create user
+CREATE DATABASE namadbnya;
+CREATE USER namausernya WITH PASSWORD 'passwordnya';
+GRANT ALL PRIVILEGES ON DATABASE namadbnya TO namausernya;
+
+==================================================
+
+$ apt-get install python-setuptools
+$ apt install python3-pip
+$ apt-get install libmysqlclient-dev
+$ apt-get install libssl-dev
+$ apt-get install libkrb5-dev
+$ apt-get install default-libmysqlclient-dev
+$ apt-get install build-essential
+$ apt-get install libffi-dev
+$ apt-get install libpq-dev
+$ apt install python3-virtualenv
+$ virtualenv nama_projectnya
+$ source nama_projectnya/bin/activate
+$ export AIRFLOW_HOME=~/airflow
+$ pip3 install psycopg2
+$ pip3 install psycopg2-binary
+$ pip3 install apache-airflow
+$ pip3 install typing_extensions
+$ airflow db init
+
+------------------------------------------
+	Setting airflow.cfg
+------------------------------------------
+
+$ nano ~/airflow/airflow.cfg
+
+edit menjadi
+```
+default_timezone = Asia/Jakarta
+executor = LocalExecutor
+sql_alchemy_conn = postgresql+psycopg2://<user>:<password>@<host>/<db>
+```
+save ctrl + x
+
+dan jalankan :
+$ airflow db upgrade
+
 ------------------------------------------
 	Buat user untuk airflow
 ------------------------------------------
-airflow users create \
+$ airflow users create \
 --username admin \
 --firstname FIRST_NAME \
 --lastname  LAST_NAME \
@@ -32,18 +106,18 @@ airflow users create \
 ------------------------------------------
 	Jalankan airflow kita		
 ------------------------------------------
-airflow webserver -p 8080
+$ airflow webserver -p 8080
 ------------------------------------------
 	Jalankan airflow schedule
 ------------------------------------------
-airflow scheduler
+$ airflow scheduler
 
 ------------------------------------------
 	Setting airflow berjaan
 	       di systemd
 ------------------------------------------
 
-cat /etc/systemd/system/airflow-webserver.service
+$ cat /etc/systemd/system/airflow-webserver.service
 
 -----ketikan-----
 
@@ -72,7 +146,7 @@ WantedBy=multi-user.target
 ------------------------------------------------------
 lanjut membuat systemd untuk menjalankan scheduler nya
 ------------------------------------------------------
-cat /etc/systemd/system/airflow-scheduler.service
+$ cat /etc/systemd/system/airflow-scheduler.service
 
 -----ketikan-----
 
@@ -114,21 +188,21 @@ RestartSec : secara default, systemd upaya restart setelah 100ms. Anda dapat men
 --------------------------------------
 lanjut dengan memulai systemd airflow
 --------------------------------------
-sudo systemctl daemon-reload
-sudo systemctl enable airflow airflow-webserver.service
-sudo systemctl enable airflow airflow-scheduler.service 
+$ sudo systemctl daemon-reload
+$ sudo systemctl enable airflow airflow-webserver.service
+$ sudo systemctl enable airflow airflow-scheduler.service 
 
 --------------------------------------
 	restart airflow kita
 --------------------------------------
-sudo systemctl restart airflow airflow-webserver.service
-sudo systemctl restart airflow airflow-scheduler.service
+$ sudo systemctl restart airflow airflow-webserver.service
+$ sudo systemctl restart airflow airflow-scheduler.service
 
 --------------------------------------
 	stop airflow kita
 --------------------------------------
-sudo systemctl stop airflow airflow-webserver.service
-sudo systemctl stop airflow airflow-scheduler.service 
+$ sudo systemctl stop airflow airflow-webserver.service
+$ sudo systemctl stop airflow airflow-scheduler.service 
 
 
 
