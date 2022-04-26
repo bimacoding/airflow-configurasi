@@ -1,0 +1,19 @@
+#airflow-webserver.service
+[Unit]
+Description=Airflow webserver daemon
+After=network.target postgresql.service mysql.service redis.service rabbitmq-server.service
+Wants=postgresql.service mysql.service redis.service rabbitmq-server.service
+
+[Service]
+#EnvironmentFile=/etc/default/airflow
+Environment="PATH=/home/vta/airflow_vta/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+User=root
+Group=root
+Type=simple
+ExecStart=/usr/bin/bash -c 'source /home/vta/airflow_vta/bin/activate; airflow webserver -p 8085'
+Restart=on-failure
+RestartSec=5s
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
